@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10.0.2/dist/sweetalert2.min.css">
+    <link rel="shortcut icon" href="#" />
+
+</head>
+
+<body>
+    <header>
+        <h2 class="text-center text-dark"><span class="badge badge-success">INGREDIENTES</span></h2>
+    </header>
+
+    <div id="app">
+        <v-app>
+            <v-main>
+                <v-card class="mx-auto mt-5" max-width="1200">
+
+                    <!-- Botón Crear -->
+                    <v-btn rounded color="#9FA8DA" @click="formNuevo()">Crear</v-btn>
+
+                    <!-- Tabla -->
+                    <v-simple-table class="mt-5">
+                        <template v-slot:default>
+                            <thead>
+                                <tr class="light-blue darken-2">
+                                    <th class="white--text">Nombre</th>
+                                    <th class="white--text">Descripción</th>
+                                    <th class="white--text">Fecha Ingreso</th>
+                                    <th class="white--text">Fecha Vencimiento</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr v-for="ingrediente in ingredientes" :key="ingrediente.id_Ingrediente">
+                                    <td>{{ ingrediente.nombre }}</td>
+                                    <td>{{ ingrediente.descripcion }}</td>
+                                    <td>{{ ingrediente.fecha_ingreso }}</td>
+                                    <td>{{ ingrediente.fecha_vencimiento }}</td>
+                                    <td>
+                                        <p align="right">
+                                            <v-btn class="teal accent-4" dark
+                                                @click="formEditar(ingrediente)">Editar</v-btn>
+                                            <v-btn class="error" dark
+                                                @click="borrar(ingrediente.id_Ingrediente)">Borrar</v-btn>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </template>
+                    </v-simple-table>
+                </v-card>
+
+                <!-- Componente crear-editar -->
+                <v-dialog v-model="dialog" max-width="1000">
+                    <v-card>
+                        <v-card-title class="blue-grey darken-1 white--text">Ingrediente</v-card-title>
+                        <v-card-text>
+                            <v-form>
+                                <v-container>
+                                    <v-row>
+
+                                        <input type="hidden" v-model="ingrediente.id_Ingrediente">
+
+
+                                        <v-col cols="12" md="4">
+                                            <label for="">Nombre de Ingrediente</label>
+                                            <v-text-field v-model="ingrediente.nombre" label="Nombre" solo
+                                                required></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="4">
+                                            <label for="">Descripción</label>
+                                            <v-text-field v-model="ingrediente.descripcion" label="Descripción" solo
+                                                required></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="4">
+                                            <label for="">Fecha de ingreso</label>
+                                            <v-text-field v-model="ingrediente.fecha_ingreso" label="fecha_ingreso"
+                                                type="date" solo required></v-text-field>
+                                        </v-col>
+                                        <v-col cols="12" md="4">
+                                            <label for="">Fecha de vencimiento</label>
+                                            <v-text-field v-model="ingrediente.fecha_vencimiento"
+                                                label="fecha_vencimiento" type="date" solo required></v-text-field>
+                                        </v-col>
+                                    </v-row>
+
+                                </v-container>
+                            </v-form>
+                        </v-card-text>
+
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn @click="dialog=false">Cancelar</v-btn>
+                            <v-btn @click="guardar()" type="submit" color="indigo" dark>Guardar</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-dialog>
+
+            </v-main>
+        </v-app>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.min.js"
+        integrity="sha512-quHCp3WbBNkwLfYUMd+KwBAgpVukJu5MncuQaWXgCrfgcxCJAq/fo+oqrRKOj+UKEmyMCG3tb8RB63W+EmrOBg=="
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10.0.2/dist/sweetalert2.all.min.js"></script>
+
+    <script>
+        new Vue({
+            el: '#app', // Elemento HTML al que se vincula la instancia de Vue
+            vuetify: new Vuetify(), // Instancia de Vuetify para el diseño de la interfaz
+            data() { // Datos de la aplicación
+                return {
+                    ingredientes: [], // Array para almacenar los ingredientes obtenidos de la base de datos
+                    dialog: false, // Controla si se muestra el diálogo para crear o editar ingredientes
+                    operacion: '', // Guarda la operación actual (crear o editar)
+                    ingrediente: { // Objeto para almacenar los datos de un ingrediente
+                        id_Ingrediente: '',
+                        nombre: '',
+                        descripcion: '',
+                        fecha_ingreso: '',
+                        fecha_vencimiento: '',
+                    }
+                }
+            },
+            created() { // Método que se ejecuta al crear la instancia de Vue
+                this.mostrar(); // Llama al método mostrar para obtener los datos de los ingredientes
+            },
+            methods: { // Métodos de la aplicación
+                mostrar() { // Método para obtener los datos de los ingredientes desde el servidor
+                    axios.post("crudIngrediente.php", { opcion: 1 }) // Realiza una solicitud POST al servidor con la opción 1 para obtener los datos
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.ingredientes = response.data; // Asigna los datos de los ingredientes obtenidos al array ingredientes
+                        })
+                        .catch(error => { // Maneja los errores
+                            console.error('Error al obtener datos:', error); // Muestra un mensaje de error en la consola
+                        });
+                },
+                crear() { // Método para crear un nuevo ingrediente
+                    axios.post("crudIngrediente.php", { opcion: 2, nombre: this.ingrediente.nombre, descripcion: this.ingrediente.descripcion, fecha_ingreso: this.ingrediente.fecha_ingreso, fecha_vencimiento: this.ingrediente.fecha_vencimiento }) // Realiza una solicitud POST al servidor con la opción 2 y los datos del ingrediente a crear
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.mostrar(); // Vuelve a obtener los datos de los ingredientes
+                        });
+                    // Reinicia los valores del objeto ingrediente
+                    this.ingrediente.id_Ingrediente = "";
+                    this.ingrediente.nombre = "";
+                    this.ingrediente.descripcion = "";
+                    this.ingrediente.fecha_ingreso = "";
+                    this.ingrediente.fecha_vencimiento = "";
+                },
+                editar() { // Método para editar un ingrediente existente
+                    axios.post("crudIngrediente.php", { opcion: 3, id_Ingrediente: this.ingrediente.id_Ingrediente, nombre: this.ingrediente.nombre, descripcion: this.ingrediente.descripcion, fecha_ingreso: this.ingrediente.fecha_ingreso, fecha_vencimiento: this.ingrediente.fecha_vencimiento }) // Realiza una solicitud POST al servidor con la opción 3, el ID del ingrediente y los datos actualizados
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.mostrar(); // Vuelve a obtener los datos de los ingredientes
+                        });
+                },
+                borrar(id) { // Método para borrar un ingrediente
+                    Swal.fire({ // Muestra un mensaje de confirmación utilizando la librería Swal
+                        title: '¿Confirma eliminar el registro?',
+                        confirmButtonText: `Confirmar`,
+                        showCancelButton: true,
+                    }).then((result) => {
+                        if (result.isConfirmed) { // Si el usuario confirma la eliminación
+                            axios.post("crudIngrediente.php", { opcion: 4, id_Ingrediente: id }).then(response => { // Realiza una solicitud POST al servidor con la opción 4 y el ID del ingrediente a borrar
+                                this.mostrar(); // Vuelve a obtener los datos de los ingredientes
+                            });
+                            Swal.fire('¡Eliminado!', '', 'success') // Muestra un mensaje de éxito utilizando la librería Swal
+                        }
+                    });
+                },
+                // Métodos para manejar los formularios de creación y edición de ingredientes
+                guardar() { // Método para guardar los datos del formulario (creación o edición)
+                    if (this.operacion == 'crear') { // Si la operación es crear
+                        this.crear(); // Llama al método crear
+                    }
+                    if (this.operacion == 'editar') { // Si la operación es editar
+                        this.editar(); // Llama al método editar
+                    }
+                    this.dialog = false; // Oculta el diálogo de creación/edición de ingredientes
+                },
+                formNuevo() { // Método para mostrar el formulario de creación de ingredientes
+                    this.dialog = true; // Muestra el diálogo
+                    this.operacion = 'crear'; // Establece la operación actual como crear
+                    // Reinicia los valores del objeto ingrediente
+                    this.ingrediente.nombre = "";
+                    this.ingrediente.descripcion = "";
+                    this.ingrediente.fecha_ingreso = "";
+                    this.ingrediente.fecha_vencimiento = "";
+                },
+                formEditar(ingrediente) { // Método para mostrar el formulario de edición de ingredientes
+                    // Establece los valores del objeto ingrediente con los datos del ingrediente seleccionado
+                    this.ingrediente.id_Ingrediente = ingrediente.id_Ingrediente;
+                    this.ingrediente.nombre = ingrediente.nombre;
+                    this.ingrediente.descripcion = ingrediente.descripcion;
+                    this.ingrediente.fecha_ingreso = ingrediente.fecha_ingreso;
+                    this.ingrediente.fecha_vencimiento = ingrediente.fecha_vencimiento;
+                    this.dialog = true; // Muestra el diálogo
+                    this.operacion = 'editar'; // Establece la operación actual como editar
+                }
+            }
+        });
+    </script>
+
+</body>

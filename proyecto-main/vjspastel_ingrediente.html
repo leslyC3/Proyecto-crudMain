@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10.0.2/dist/sweetalert2.min.css">
+    <link rel="shortcut icon" href="#" />
+
+</head>
+
+<body>
+    <header>
+        <h2 class="text-center text-dark"><span class="badge badge-success">PASTEL - INGREDIENTE</span></h2>
+    </header>
+
+    <div id="app">
+        <v-app>
+            <v-main>
+                <v-card class="mx-auto mt-5" max-width="1200">
+
+                    <!-- Botón Crear -->
+                    <v-btn rounded color="#9FA8DA" @click="formNuevo()">Crear</v-btn>
+
+                    <!-- Tabla -->
+                    <v-simple-table class="mt-5">
+                        <template v-slot:default>
+                            <thead>
+                                <tr class="light-blue darken-2">
+                                    <th class="white--text">ID Pastel Ingrediente</th>
+                                    <th class="white--text">Pastel</th>
+                                    <th class="white--text">Ingrediente</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr v-for="pastel_ingrediente in pastel_ingredientes"
+                                    :key="pastel_ingrediente.id_pastel_ingrediente">
+                                    <td>{{ pastel_ingrediente.id_pastel_ingrediente }}</td>
+                                    <td>{{ pastel_ingrediente.nombrePastel }}</td>
+                                    <td>{{ pastel_ingrediente.nombreIngrediente }}</td>
+                                    <td>
+                                        <p align="right">
+                                            <v-btn class="teal accent-4" dark
+                                                @click="formEditar(pastel_ingrediente)">Editar</v-btn>
+                                            <v-btn class="error" dark
+                                                @click="borrar(pastel_ingrediente.id_pastel_ingrediente)">Borrar</v-btn>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </template>
+                    </v-simple-table>
+                </v-card>
+
+                <!-- Componente crear-editar -->
+                <v-dialog v-model="dialog" max-width="1000">
+                    <v-card>
+                        <v-card-title class="blue-grey darken-1 white--text">Pastel - Ingrediente</v-card-title>
+                        <v-card-text>
+                            <v-form>
+                                <v-container>
+                                    <v-row>
+
+                                        <input type="hidden" v-model="pastel_ingrediente.id_pastel_ingrediente">
+
+
+                                        <v-col cols="12" md="4">
+                                            <label for="selectPastel">Seleccione un pastel</label>
+
+                                            <v-select v-model="pastel_ingrediente.id_Pastel" :items="pasteles"
+                                                item-value="id_Pastel" item-text="nombre" required></v-select>
+                                        </v-col>
+
+                                        <v-col cols="12" md="4">
+                                            <label for="selectPastel">Seleccione un ingrediente</label>
+                                            <v-select v-model="pastel_ingrediente.id_Ingrediente" :items="ingredientes"
+                                                item-value="id_Ingrediente" item-text="nombre" required></v-select>
+                                        </v-col>
+                                    </v-row>
+
+
+                                </v-container>
+                            </v-form>
+                        </v-card-text>
+
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn @click="dialog=false">Cancelar</v-btn>
+                            <v-btn @click="guardar()" type="submit" color="indigo" dark>Guardar</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-dialog>
+
+            </v-main>
+        </v-app>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.min.js"
+        integrity="sha512-quHCp3WbBNkwLfYUMd+KwBAgpVukJu5MncuQaWXgCrfgcxCJAq/fo+oqrRKOj+UKEmyMCG3tb8RB63W+EmrOBg=="
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10.0.2/dist/sweetalert2.all.min.js"></script>
+
+    <script>
+        new Vue({
+            el: '#app', // Elemento HTML al que se vincula la instancia de Vue
+            vuetify: new Vuetify(), // Instancia de Vuetify para el diseño de la interfaz
+            data() { // Datos de la aplicación
+                return {
+                    pasteles: [], // Array para almacenar los pasteles obtenidos de la base de datos
+                    ingredientes: [], // Array para almacenar los ingredientes obtenidos de la base de datos
+                    pastel_ingredientes: [], // Array para almacenar los registros de pastel-ingredientes obtenidos de la base de datos
+                    dialog: false, // Controla si se muestra el diálogo para crear o editar pastel-ingredientes
+                    operacion: '', // Guarda la operación actual (crear o editar)
+                    pastel_ingrediente: { // Objeto para almacenar los datos de un pastel-ingrediente
+                        id_pastel_ingrediente: '',
+                        id_Pastel: '',
+                        id_Ingrediente: '',
+                    }
+                }
+            },
+            created() { // Método que se ejecuta al crear la instancia de Vue
+                this.mostrarPastelIngredientes(); // Llama al método mostrarPastelIngredientes para obtener los datos de los pasteles-ingredientes
+            },
+            methods: { // Métodos de la aplicación
+                mostrarPasteles() { // Método para obtener los datos de los pasteles desde el servidor
+                    axios.post("CRUDD.php", { opcion: 1 }) // Realiza una solicitud POST al servidor con la opción 1 para obtener los datos
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.pasteles = response.data; // Asigna los datos de los pasteles obtenidos al array pasteles
+                        })
+                        .catch(error => { // Maneja los errores
+                            console.error('Error al obtener datos:', error); // Muestra un mensaje de error en la consola
+                        });
+                },
+                mostrarIngredientes() { // Método para obtener los datos de los ingredientes desde el servidor
+                    axios.post("crudIngrediente.php", { opcion: 1 }) // Realiza una solicitud POST al servidor con la opción 1 para obtener los datos
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.ingredientes = response.data; // Asigna los datos de los ingredientes obtenidos al array ingredientes
+                        })
+                        .catch(error => { // Maneja los errores
+                            console.error('Error al obtener datos:', error); // Muestra un mensaje de error en la consola
+                        });
+                },
+                mostrarPastelIngredientes() { // Método para obtener los datos de los pasteles-ingredientes desde el servidor
+                    axios.post("crudPastel_Ingrediente.php", { opcion: 1 }) // Realiza una solicitud POST al servidor con la opción 1 para obtener los datos
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.pastel_ingredientes = response.data; // Asigna los datos de los pasteles-ingredientes obtenidos al array pastel_ingredientes
+                        })
+                        .catch(error => { // Maneja los errores
+                            console.error('Error al obtener datos:', error); // Muestra un mensaje de error en la consola
+                        });
+                },
+                crear() { // Método para crear un nuevo pastel-ingrediente
+                    axios.post("crudPastel_Ingrediente.php", { opcion: 2, id_Pastel: this.pastel_ingrediente.id_Pastel, id_Ingrediente: this.pastel_ingrediente.id_Ingrediente }) // Realiza una solicitud POST al servidor con la opción 2 y los datos del pastel-ingrediente a crear
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.mostrarPastelIngredientes(); // Vuelve a obtener los datos de los pasteles-ingredientes
+                        });
+                    // Reinicia los valores del objeto pastel_ingrediente
+                    this.pastel_ingrediente.id_pastel_ingrediente = "";
+                    this.pastel_ingrediente.id_Pastel = "";
+                    this.pastel_ingrediente.id_Ingrediente = "";
+                },
+                editar() { // Método para editar un pastel-ingrediente existente
+                    axios.post("crudPastel_Ingrediente.php", { opcion: 3, id_pastel_ingrediente: this.pastel_ingrediente.id_pastel_ingrediente, id_Pastel: this.pastel_ingrediente.id_Pastel, id_Ingrediente: this.pastel_ingrediente.id_Ingrediente }) // Realiza una solicitud POST al servidor con la opción 3, el ID del pastel-ingrediente y los datos actualizados
+                        .then(response => { // Maneja la respuesta del servidor
+                            this.mostrar(); // Vuelve a obtener los datos de los pasteles-ingredientes
+                        });
+                },
+                borrar(id) { // Método para borrar un pastel-ingrediente
+                    Swal.fire({ // Muestra un mensaje de confirmación utilizando la librería Swal
+                        title: '¿Confirma eliminar el registro?',
+                        confirmButtonText: `Confirmar`,
+                        showCancelButton: true,
+                    }).then((result) => {
+                        if (result.isConfirmed) { // Si el usuario confirma la eliminación
+                            axios.post("crudPastel_Ingrediente.php", { opcion: 4, id_pastel_ingrediente: id }).then(response => { // Realiza una solicitud POST al servidor con la opción 4 y el ID del pastel-ingrediente a borrar
+                                this.mostrarPastelIngredientes(); // Vuelve a obtener los datos de los pasteles-ingredientes
+                            });
+                            Swal.fire('¡Eliminado!', '', 'success') // Muestra un mensaje de éxito utilizando la librería Swal
+                        }
+                    });
+                },
+                // Métodos para manejar los formularios de creación y edición de pasteles-ingredientes
+                guardar() { // Método para guardar los datos del formulario (creación o edición)
+                    if (this.operacion == 'crear') { // Si la operación es crear
+                        this.crear(); // Llama al método crear
+                    }
+                    if (this.operacion == 'editar') { // Si la operación es editar
+                        this.editar(); // Llama al método editar
+                    }
+                    this.dialog = false; // Oculta el diálogo de creación/edición de pastel-ingredientes
+                },
+                formNuevo() { // Método para mostrar el formulario de creación de pastel-ingredientes
+                    this.dialog = true; // Muestra el diálogo
+                    this.operacion = 'crear'; // Establece la operación actual como crear
+                    // Reinicia los valores del objeto pastel_ingrediente
+                    this.pastel_ingrediente.id_pastel_ingrediente = "";
+                    this.pastel_ingrediente.id_Pastel = "";
+                    this.pastel_ingrediente.id_Ingrediente = "";
+                    this.mostrarPasteles(); // Actualiza la lista de pasteles
+                    this.mostrarIngredientes(); // Actualiza la lista de ingredientes
+                },
+                formEditar(pastel_ingrediente) { // Método para mostrar el formulario de edición de pastel-ingredientes
+                    // Establece los valores del objeto pastel_ingrediente con los datos del pastel-ingrediente seleccionado
+                    this.pastel_ingrediente.id_pastel_ingrediente = pastel_ingrediente.id_pastel_ingrediente;
+                    this.pastel_ingrediente.id_Pastel = pastel_ingrediente.id_Pastel;
+                    this.pastel_ingrediente.id_Ingrediente = pastel_ingrediente.id_Ingrediente;
+                    this.mostrarPasteles(); // Actualiza la lista de pasteles
+                    this.mostrarIngredientes(); // Actualiza la lista de ingredientes
+                    this.dialog = true; // Muestra el diálogo
+                    this.operacion = 'editar'; // Establece la operación actual como editar
+                }
+            }
+        });
+    </script>
+
+</body>
